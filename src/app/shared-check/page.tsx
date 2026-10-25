@@ -1,3 +1,6 @@
+import { Suspense } from "react";
+import { io } from "next/cache";
+import { db, snapshots } from "@vendorpulse/db";
 import { parseSnapshot } from "@vendorpulse/shared";
 
 const snapshot = parseSnapshot({
@@ -18,8 +21,35 @@ export default function SharedCheckPage() {
         Shared package
       </h1>
       <p className="mt-4 text-sm text-muted">
-        {snapshot.vendor} credits {snapshot.creditsLeft}
+        Checklist: {snapshot.vendor} credits {snapshot.creditsLeft}
       </p>
+      <h2 className="mt-8 text-lg font-semibold">Saved readings</h2>
+      <Suspense
+        fallback={
+          <p className="mt-3 text-sm text-muted">Loading saved readings...</p>
+        }
+      >
+        <SavedReadings />
+      </Suspense>
     </main>
+  );
+}
+
+async function SavedReadings() {
+  await io();
+  const rows = await db.select().from(snapshots);
+
+  if (rows.length === 0) {
+    return <p className="mt-3 text-sm text-muted">No readings saved yet.</p>;
+  }
+
+  return (
+    <ul className="mt-3 space-y-2 text-sm">
+      {rows.map((row) => (
+        <li key={row.id}>
+          {row.vendor} credits {row.creditsLeft}
+        </li>
+      ))}
+    </ul>
   );
 }
